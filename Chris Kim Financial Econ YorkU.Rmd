@@ -1,0 +1,417 @@
+---
+title: "Chris Kim Financial Econ YorkU"
+author: "Faizan Khalid Mohsin"
+date: "April 1, 2018"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Assignment 1:
+
+
+
+```{r }
+# Read in the data
+
+rbc = read.csv("RY.TO.csv")
+tsx = read.csv("TSX.Index.csv")
+tbills = read.csv("TBillsCorrected.csv")
+mexi_index = read.csv("mexico market index.csv")
+nas_index = read.csv("nasdaq index.csv")
+
+data1.1 = read.csv("data_final.csv")
+
+
+# Merge the data
+
+zmerged1 <- merge(tsx,rbc,by="Date")
+data= merge(zmerged1, tbills, by = "Date")
+
+data_Indexes= merge(mexi_index, nas_index, by = "Date")
+
+final_data = merge(data1.1, data_Indexes, by="Date")
+
+#write.csv(data, file = "data_merged.csv")
+#write.csv(final_data , file = "final_data.csv")
+```
+
+
+### Run CAPM: (Rj-Rf) on (Rm-Rf) and get an estimate of beta.
+
+
+```{r}
+data$Rj.Rf = data$Rj - data$Rf
+data$Rm.Rf = data$Rm - data$Rf
+
+model1 = lm(Rj.Rf ~ Rm.Rf, data = data)
+beta = summary(model1)$coefficients
+beta
+
+```
+
+
+### Re-run the Fama-French Model 
+
+
+
+```{r}
+
+```
+
+
+### We do a diagnostic check for Hadocasticity
+
+```{r}
+
+# Checking Heterodecsticity 
+plot(model1)
+
+```
+
+
+
+### Checking autocorrelation
+
+
+```{r}
+res = model1$res 
+n = length(res) 
+MODEL = lm(res[-n] ~ res[-1]) 
+summary(MODEL)
+```
+
+Our MODEL is a linear regression of the time t error, εt, against the time t−1 error, εt−1. Hence, if the coefficient for res[-1] is statistically significant, we have evidence of autocorrelation in the residuals. As our p-value is 0.215 which is greater than 5% we do not reject the null hypothesis, therefore conclude that we do not have evidence of autocorrelation. Therefore, another assumption of linear regression is fullfilled. 
+
+### Checking multicoliniearity
+
+```{r}
+# Need to do this
+#require(dplyr)
+#X = select(final_data, )
+# library(GGally)
+# ggpairs(X)
+
+```
+
+### 14. Perform the ADF, PP and KPSS unit root tests on all the variables and make sure that they are all stationary. 
+
+
+```{r}
+require(tseries)
+
+###########                      ADF Test
+
+# ADF test for RBC Stock Return
+adf.test(data$Rj.Rf)
+# ADF test for TSX Market Return
+adf.test(data$Rm.Rf)
+
+###########                      PP Test
+
+# PP test for RBC Stock Return
+pp.test(data$Rj.Rf)
+# PP test for TSX Market Return
+pp.test(data$Rm.Rf)
+
+###########                      KPSS Test
+
+# KPSS test for RBC Stock Return
+kpss.test(data$Rj.Rf)
+# KPSS test for TSX Market Return
+kpss.test(data$Rm.Rf)
+```
+
+
+We perform ADF, PP and KPSS tests on the RBC stock and TSX index returns and find that they are stationary as p-values for the ADF and PP are 1% hence stationary as we have evidence to reject null (H0: not stationary). For KPSS the pvalue is 0.1 which is greater than 5% therefore do not reject null (H0: series is stationary). Hence, all three tests conclude that the series are indeed stationary. 
+
+## Assingment 2
+
+### 1. Plot the stock price and market index series in levels. 
+
+```{r}
+
+rbc.close = ts(data$ry.Close)
+tsx.close = ts(data$m.Close)
+
+ts.plot(rbc.close,tsx.close, type="l", 
+        lty=c(1,2), col=c(1,2))
+legend("right", border=NULL, legend=c("RBC Stock Price","TSX Market Index"), 
+       lty=c(1,2), col=c(1,2))
+
+```
+Because the TSX Market index is in the 10,000's and the RBC stock price is around $70, in the graph of the price series RBC looks as if it is zero. Which it is not as we will see below where we plot them seperately. 
+
+### 1. Plot the stock price and market index series seperately.
+
+
+```{r}
+
+ts.plot(rbc.close, type="l", 
+        lty=c(1), col=c(1))
+legend("bottomright", border=NULL, legend=c("RBC Stock Price"), 
+       lty=c(1), col=c(1))
+
+ts.plot(rbc.close, type="l", 
+        lty=c(2), col=c(2))
+legend("bottomright", border=NULL, legend=c("TSX Market Index"), 
+       lty=c(2), col=c(2))
+
+```
+
+### 2.1 Plot the stock returns and market returns series.
+
+```{r}
+
+rbc.return = ts(data$Rj.Rf)
+tsx.return = ts(data$Rm.Rf)
+
+ts.plot(rbc.return,tsx.return, type="l", 
+        lty=c(1,2), col=c(1,2))
+legend("top", border=NULL, legend=c("RBC Stock Return","TSX Market Index Return"), 
+       lty=c(1,2), col=c(1,2))
+
+```
+
+
+### 2.2 Plot the stock returns and market returns series (first difference). 
+```{r}
+
+# Creating frist difference for the returns of rbc and TSX. We will call them drbcReturn and dmReturn respectively. 
+dRj.Rf = diff(data$Rj.Rf)
+dRm.Rf = diff(data$Rm.Rf)
+
+drbcReturn = ts(dRj.Rf)
+dmReturn = ts(dRm.Rf)
+
+# Here we use ts.plot to plot the two return series together in one plot. 
+ts.plot(drbcReturn,dmReturn, type="l", 
+        lty=c(1,2), col=c(1,2))
+legend("bottom", border=NULL, legend=c("RBC Stock Return first difference","TSX Market Return first difference"), 
+       lty=c(1,2), col=c(1,2))
+
+```
+
+### Q 3) Check for the normality of the return series using the JARQUE BERA TEST. 
+
+```{r}
+require(tseries)
+
+# Return series for RBC stock
+jarque.bera.test(data$Rj.Rf)
+
+# Return series for the TSX Market index
+jarque.bera.test(data$Rm.Rf)
+
+```
+All of the JB tests were statistically significant as all the pvalues are much smaller than 5% we reject the null. Hence, as the null is that the data is normally distributed, which we reject, we conlcude that the return series is not normally distributed. 
+
+### Q 3) We will now check for the normality of the return series first difference using the JARQUE BERA TEST. 
+
+```{r}
+
+# Return series for RBC stock first difference
+jarque.bera.test(drbcReturn)
+
+# Return series for the TSX Market index first difference
+jarque.bera.test(dmReturn )
+
+```
+
+Again all of the JB tests were statistically significant as all the pvalues are greater that 5% we reject the null. Hence, we conlcude that the return series is not normally distributed. 
+
+### Q 4 ) Perform the ADF, PP and KPSS unit root tests on the series in levels (price series) and the series in first difference (stock returns). 
+
+
+#### Doing all three tests on the series in levels (price series). 
+```{r}
+
+library(forecast)
+
+adf.test(rbc.close)
+adf.test(tsx.close)
+
+pp.test(rbc.close)
+pp.test(tsx.close)
+
+kpss.test(rbc.close)
+kpss.test(tsx.close)
+
+```
+ 
+ADF and PP tests for the prices series for RBC and TSX Index Market give p-values of greater than 5% hence cannot reject null which is that the series are not stationary, meaning they are not stationary as the alternative in these tests is that the serie is  stationary. Kpss tests for the prices series for RBC and TSX Index Market give p-values of 0.01 which are less than 5% hence reject nulll meaning the price series for rbc and tsx market index are not stationary. All three tests conclude that the price series of RBC and TSX Market Index are all NOT stationary.
+
+
+#### Doing all three tests on the series of stock returns. 
+```{r}
+
+adf.test(rbc.return)
+adf.test(tsx.return)
+
+pp.test(rbc.return)
+pp.test(tsx.return)
+
+kpss.test(rbc.return)
+kpss.test(tsx.return)
+
+
+```
+
+From the output above it can be seen that the ADF and PP tests give p values less than 5% hence cannot reject null, meaning they are stationary as the alternative in these tests is that the serie is  stationary. Kpss gives p-value great than 5% hence cannot reject nulll meaning the price series for rbc and tsx market index are stationary. 
+
+#### Doing all three tests on the series in first differnce of stock returns. 
+
+```{r}
+
+adf.test(drbcReturn)
+adf.test(dmReturn)
+
+pp.test(drbcReturn)
+pp.test(dmReturn)
+
+kpss.test(dmReturn)
+kpss.test(drbcReturn)
+
+```
+
+ADF and PP tests give p values less than 5% hence cannot reject null, meaning they are stationary as the alternative in these tests is that the serie is  stationary. Kpss tests gives p-values great than 5% hence cannot reject nulll meaning the price series for rbc and tsx market index are stationary.
+ 
+
+### 5. For weak form capital market efficiency use the market index in levels to explore whether the respective stock market is weak form efficient. 
+
+```{r}
+
+
+```
+
+
+### 6. Download the market index of two other North American countries (Canada, US and Mexico) and perform Johansen cointegration test to see whether the stock markets are financial integrated. That is has NAFTA enhanced financial integration? 
+
+
+```{r}
+
+library("urca")
+
+mex_index = final_data$Close.x
+nas_index = final_data$Close.y
+tsx_index = final_data$m.Close
+
+jotest=ca.jo(data.frame(diff(mex_index),diff(nas_index),diff(tsx_index)), type="trace", K=2, ecdet="none", spec="longrun")
+summary(jotest)
+
+```
+
+First note that we use the first difference of the 3 market indexes, to test for the cointegration. 
+In the ouput above you can see the test statistic for the three hypotheses of r≤2, r≤1 and r=0. For each of these three tests we have not only the statistic itself (given under the test column) but also the critical values at certain levels of confidence: 10%, 5% and 1% respectively.
+
+The first hypothesis, r=0, tests for the presence of cointegration. It is clear that since the test statistic is greater than the 1% level significantly (651.95>37.22) that we have strong evidence to reject the null hypothesis of no cointegration. Hence, indeed NAFTA has lead to increased financial co-integration between USA, Canada and Mexico. 
+
+
+### 7. Perform granger causality tests, variance decomposition (table only no graphs) and impulse response functions (graphs only no tables) between the three stock market indices. 
+
+
+#### granger causality tests between the three stock market indexes. 
+
+##### First test if mexico index is effected by nasdaq index
+
+```{r}
+library(lmtest)
+library(forecast)
+# do eggs granger cause chickens?
+# grangertest(dchick ~ degg, order=4)
+
+dmex_index = diff(final_data$Close.x)
+dnas_index = diff(final_data$Close.y)
+dtsx_index = diff(final_data$m.Close)
+
+
+# Testing if nasdaq index causes mex index to change  for order =4 (lag =4). 
+grangertest(dmex_index ~ dnas_index, order=4)
+
+
+# Testing if nasdaq index causes mex index to change for order =1 (lag =1). 
+grangertest(dmex_index ~ dnas_index, order=1)
+
+
+```
+
+For both lags (4 and 1) pvalue (0.138 and 0.1265 respectively) are greater than 5% hence results are not statistically significant therefore mexico market index is not effected by nasdaq index. Not sure why this is. Maybe need data for more than 2 years?
+
+
+
+##### Second test if mexico index is effected by tsx index
+
+```{r}
+
+# Testing if tsx index causes mex index to change  for order =4 (lag =4). 
+grangertest(dmex_index ~ dtsx_index, order=4)
+
+
+# Testing if nasdaq index causes mex index to change for order =1 (lag =1). 
+grangertest(dmex_index ~ dtsx_index, order=1)
+
+
+```
+
+Again, for both lags (4 and 1) pvalues (0.7846 and 0.4133 respectively) are greater than 5% hence results are not statistically significant therefore mexico market index is not effected by tsx index. Not sure why this is. Maybe need data for more than 2 years?
+
+
+
+
+##### Thirdly test if tsx index is effected by nasdaq index
+
+```{r}
+
+# Testing if nasdaq index causes tsx index to change  for order =4 (lag =4). 
+grangertest(dtsx_index ~ dmex_index, order=4)
+
+
+# Testing if nasdaq index causes tsx index to change for order =1 (lag =1). 
+grangertest(dtsx_index ~ dmex_index, order=1)
+
+
+```
+
+Again, for both lags (4 and 1) pvalues (0.1009 and 0.2241) are greater than 5% hence results are not statistically significant therefore mexico market index is not effected by tsx index. Not sure why this is. Maybe need data for more than 2 years?
+
+
+##### Forthly test if nasdaq index is effected by tsx index. 
+
+```{r}
+
+# Testing if nasdaq index causes tsx index to change  for order =4 (lag =4). 
+grangertest(dnas_index ~ dtsx_index, order=4)
+
+
+# Testing if nasdaq index causes tsx index to change for order =1 (lag =1). 
+grangertest(dnas_index ~ dtsx_index, order=1)
+
+
+```
+
+Again, for both lags (4 and 1) pvalues (0.7822 and  0.8048) are greater than 5% hence results are not statistically significant therefore mexico market index is not effected by tsx index. Not sure why this is. Maybe need data for more than 2 years?
+
+#### Variance decomposition (table only no graphs)
+
+```{r}
+library(vars)
+
+varmat <- as.matrix(cbind(dmex_index,dtsx_index, dnas_index))
+varfit <- VAR(varmat) # `VAR()` from package `vars`
+summary(varfit)
+
+
+```
+
+### Impulse response functions (graphs only no tables) between the three stock market indices.
+```{r}
+
+```
+
+
+
+END

@@ -1,0 +1,686 @@
+---
+title: "Financial Econ: Trends and Times Series YorkU"
+author: "Faizan Khalid Mohsin"
+date: "April 3, 2018"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Assignment 1:
+
+
+
+```{r }
+# Read in the data
+
+rbc = read.csv("RY.TO.csv")
+tsx = read.csv("TSX.Index.csv")
+tbills = read.csv("TBillsCorrected.csv")
+mexi_index = read.csv("mexico market index.csv")
+nas_index = read.csv("nasdaq index.csv")
+
+data1.1 = read.csv("data_final.csv")
+
+
+# Merge the data
+
+zmerged1 <- merge(tsx,rbc,by="Date")
+data= merge(zmerged1, tbills, by = "Date")
+
+data_Indexes= merge(mexi_index, nas_index, by = "Date")
+
+final_data = merge(data1.1, data_Indexes, by="Date")
+
+#write.csv(data, file = "data_merged.csv")
+#write.csv(final_data , file = "final_data.csv")
+```
+
+
+# Run CAPM: (Rj-Rf) on (Rm-Rf) and get an estimate of beta.
+
+
+```{r}
+
+attach(data)
+
+data$Rj.Rf = data$Rj - data$Rf
+data$Rm.Rf = data$Rm - data$Rf
+beta1 = cov(data$Rj.Rf, data$Rm.Rf)/var(data$Rm.Rf)
+beta1
+
+# model1 = lm(Rj.Rf ~ Rm.Rf, data = data)
+# beta = summary(model1)$coefficients
+# beta
+
+```
+
+
+# Re-run the Fama-French Model 
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+
+```
+
+
+We do a diagnostic check for Hadocasticity
+
+```{r}
+
+# Checking Heterodecsticity 
+plot(model1)
+
+```
+
+
+
+# Checking autocorrelation
+
+
+```{r}
+res = model1$res 
+n = length(res) 
+mod2 = lm(res[-n] ~ res[-1]) 
+summary(mod2)
+```
+
+
+# Checking multicoliniearity
+
+```{r}
+require(dplyr)
+#X = select(final_data, )
+# library(GGally)
+# ggpairs(X)
+
+```
+
+14. Perform the ADF, PP and KPSS unit root tests on all the variables and make sure that they are all stationary. 
+
+
+```{r}
+require(tseries)
+# ADF test for AR(1) process
+
+adf.test(data$Rj.Rf)
+adf.test(data$Rm.Rf)
+# ADF test for co2 data
+
+# PP Test
+pp.test(data$Rj.Rf)
+
+# KPSS
+kpss.test(data$Rj.Rf)
+
+
+```
+
+
+1. Plot the stock price and market index series in levels. 
+
+```{r}
+
+plot.ts(data$ry.Close)
+plot.ts(data$m.Close, add = T)
+rbc.close = ts(data$ry.Close)
+tsx.close = ts(data$m.Close)
+
+
+ts.plot(rbc.close,tsx.close, type="l", 
+        lty=c(1,2), col=c(1,2))
+legend("topleft", border=NULL, legend=c("RBC Stock Price","TSX Market Index"), 
+       lty=c(1,2), col=c(1,2))
+
+
+
+rbc.close = ts(data$ry.Close, start = c(2016, 1), end = c(2018, 1), frequency = 90)
+tsx.close = ts(data$m.Close, start = c(2016, 1), end = c(2018, 1), frequency = 90)
+
+ts.plot(rbc.close,tsx.close, type="l", 
+        lty=c(1,2), col=c(1,2))
+legend("right", border=NULL, legend=c("RBC Stock Price","TSX Market Index"), 
+       lty=c(1,2), col=c(1,2))
+
+
+```
+
+2.1 Plot the stock returns and market returns series
+
+```{r}
+
+plot.ts(data$Rj.Rf)
+plot.ts(data$Rm.Rf)
+
+rbc.return = ts(data$Rj.Rf)
+tsx.return = ts(data$Rm.Rf)
+
+
+ts.plot(rbc.return,tsx.return, type="l", 
+        lty=c(1,2), col=c(1,2))
+legend("top", border=NULL, legend=c("RBC Stock Return","TSX Market Index Return"), 
+       lty=c(1,2), col=c(1,2))
+
+```
+
+
+##2.2 Plot the stock returns and market returns series (first difference). 
+```{r}
+
+plot.ts(data$Rj.Rf)
+plot.ts(data$Rm.Rf)
+
+
+dRj.Rf = diff(data$Rj.Rf)
+dRm.Rf = diff(data$Rm.Rf)
+
+rbcReturn = ts(dRj.Rf)
+mReturn = ts(dRm.Rf)
+
+drbcReturn = ts(dRj.Rf)
+dmReturn = ts(dRm.Rf)
+
+
+plot.ts(dRj.Rf)
+plot.ts(dRj.Rf)
+
+
+ts.plot(drbcReturn,dmReturn, type="l", 
+        lty=c(1,2), col=c(1,2))
+legend("bottomright", border=NULL, legend=c("RBC Stock Return first difference","TSX Market Return first difference"), 
+       lty=c(1,2), col=c(1,2))
+
+
+```
+
+## Q 3) JARQUE BERA TEST. 
+
+```{r}
+
+require(tseries)
+
+
+jarque.bera.test(data$ry.Close)
+jarque.bera.test(data$m.Close)
+
+jarque.bera.test(data$Rj.Rf)
+jarque.bera.test(data$Rm.Rf)
+
+jarque.bera.test(dRj.Rf)
+jarque.bera.test(dRj.Rf)
+
+
+```
+All of the JB tests were statistically significant as all the pvalues are greater that 5%. 
+
+
+## Q 4 ) Perform the ADF, PP and KPSS unit root tests on the series in levels (price series) and the series in first difference (stock returns). 
+
+
+### Doing all three tests on the series in levels (price series). 
+```{r}
+
+library(forecast)
+
+adf.test(rbc.close)
+adf.test(tsx.close)
+
+pp.test(rbc.close)
+pp.test(tsx.close)
+
+kpss.test(rbc.close)
+kpss.test(tsx.close)
+
+```
+ 
+ADF and PP tests for the prices series for RBC and TSX Index Market give p-values of greater than 5% hence cannot reject null which is that the series are not stationary, meaning they are not stationary as the alternative in these tests is that the serie is  stationary. Kpss tests for the prices series for RBC and TSX Index Market give p-values of 0.01 which are less than 5% hence reject nulll meaning the price series for rbc and tsx market index are not stationary.
+
+
+### Doing all three tests on the series of stock returns. 
+```{r}
+
+adf.test(rbcReturn)
+adf.test(dmReturn)
+
+pp.test(rbcReturn)
+pp.test(mReturn)
+
+kpss.test(mReturn)
+kpss.test(rbcReturn)
+
+```
+
+ADF and PP tests give p values less than 5% hence cannot reject null, meaning they are stationary as the alternative in these tests is that the serie is  stationary. Kpss gives p-value great than 5% hence cannot reject nulll meaning the price series for rbc and tsx market index are stationary. 
+
+### Doing all three tests on the series in first differnce of stock returns. 
+
+```{r}
+
+adf.test(drbcReturn)
+adf.test(dmReturn)
+
+pp.test(drbcReturn)
+pp.test(dmReturn)
+
+kpss.test(dmReturn)
+kpss.test(drbcReturn)
+
+```
+
+ADF and PP tests give p values less than 5% hence cannot reject null, meaning they are stationary as the alternative in these tests is that the serie is  stationary. Kpss tests gives p-values great than 5% hence cannot reject nulll meaning the price series for rbc and tsx market index are stationary.
+ 
+
+5. For weak form capital market efficiency use the market index in levels to explore whether the respective stock market is weak form efficient. 
+
+```{r}
+
+
+```
+
+
+##6. Download the market index of two other North American countries (Canada, US and Mexico) and perform Johansen cointegration test to see whether the stock markets are financial integrated. That is has NAFTA enhanced financial integration? 
+
+
+```{r}
+
+library("urca")
+
+mex_index = final_data$Close.x
+nas_index = final_data$Close.y
+tsx_index = final_data$m.Close
+
+jotest=ca.jo(data.frame(diff(mex_index),diff(nas_index),diff(tsx_index)), type="trace", K=2, ecdet="none", spec="longrun")
+summary(jotest)
+
+```
+```{r, include = FALSE}
+
+# hERE IS THE actual interpretation and below is the short version for just co-integration test. 
+# 
+# The first section shows the eigenvalues generated by the test. In this instance we have three with the largest approximately equal to 0.02964.
+# 
+# The next section shows the trace test statistic for the three hypotheses of r≤2, r≤1 and r=0. For each of these three tests we have not only the statistic itself (given under the test column) but also the critical values at certain levels of confidence: 10%, 5% and 1% respectively.
+# 
+# The first hypothesis, r=0, tests for the presence of cointegration. It is clear that since the test statistic exceeds the 1% level significantly (651.95>37.22) that we have strong evidence to reject the null hypothesis of no cointegration. The second test for r≤1 against the alternative hypothesis of r>1 also provides clear evidence to reject r≤1 since the test statistic exceeds the 1% level significantly (400.92 > 23.52). The final test for r≤2 against r>2 also provides sufficient evidence for rejecting the null hypothesis that r≤2 and so can conclude that the rank of the matrix r is greater than 2.
+# 
+# Thus the best estimate of the rank of the matrix is r=3, which tells us that we need a linear combination of three time series to form a stationary series. This is to be expected, by definition of the series, as the underlying random walk utilised for all three series is non-stationary.
+# 
+# How do we go about forming such a linear combination? The answer is to make use of the eigenvector components of the eigenvector associated with the largest eigenvalue. We previously mentioned that the largest eigenvalue is approximately 0.3389. It corresponds to the vector given under the column p.l2, and is approximately equal to (1.000000,1.791324,−1.717271). If we form a linear combination of series using these components, we will receive a stationary series:
+
+```
+
+
+
+The next section shows the trace test statistic for the three hypotheses of r≤2, r≤1 and r=0. For each of these three tests we have not only the statistic itself (given under the test column) but also the critical values at certain levels of confidence: 10%, 5% and 1% respectively.
+
+The first hypothesis, r=0, tests for the presence of cointegration. It is clear that since the test statistic exceeds the 1% level significantly (651.95>37.22) that we have strong evidence to reject the null hypothesis of no cointegration. Hence NAFTA has indeed increased financial co-integration. 
+
+
+
+```{r, include=F}
+#shorter way of testing conintegration but not as versatile or comprehensive as the previous one.
+cint1.dyn <- dynlm(nas_index~mex_index-1)
+kable(tidy(cint1.dyn), digits=3, caption="The results of the cointegration equation 'cint1.dyn'")
+```
+
+
+
+7. Perform granger causality tests, variance decomposition (table only no graphs) and impulse response functions (graphs only no tables) between the three stock market indices. 
+
+
+### granger causality tests between the three stock market indexes. 
+
+#### First test if mexico index is effected by nasdaq index
+
+```{r}
+library(lmtest)
+library(forecast)
+# do eggs granger cause chickens?
+# grangertest(dchick ~ degg, order=4)
+
+dmex_index = diff(final_data$Close.x)
+dnas_index = diff(final_data$Close.y)
+dtsx_index = diff(final_data$m.Close)
+
+
+# Testing if nasdaq index causes mex index to change  for order =4 (lag =4). 
+grangertest(dmex_index ~ dnas_index, order=4)
+
+
+# Testing if nasdaq index causes mex index to change for order =1 (lag =1). 
+grangertest(dmex_index ~ dnas_index, order=1)
+
+
+```
+
+For both lags (4 and 1) pvalue (0.138 and 0.1265 respectively) are greater than 5% hence results are not statistically significant therefore mexico market index is not effected by nasdaq index. Not sure why this is. Maybe need data for more than 2 years?
+
+
+
+#### Second test if mexico index is effected by tsx index
+
+```{r}
+
+# Testing if tsx index causes mex index to change  for order =4 (lag =4). 
+grangertest(dmex_index ~ dtsx_index, order=4)
+
+
+# Testing if nasdaq index causes mex index to change for order =1 (lag =1). 
+grangertest(dmex_index ~ dtsx_index, order=1)
+
+
+```
+
+Again, for both lags (4 and 1) pvalues (0.7846 and 0.4133 respectively) are greater than 5% hence results are not statistically significant therefore mexico market index is not effected by tsx index. Not sure why this is. Maybe need data for more than 2 years?
+
+
+
+
+
+#### Thirdly test if tsx index is effected by nasdaq index
+
+```{r}
+
+# Testing if nasdaq index causes tsx index to change  for order =4 (lag =4). 
+grangertest(dtsx_index ~ dmex_index, order=4)
+
+
+# Testing if nasdaq index causes tsx index to change for order =1 (lag =1). 
+grangertest(dtsx_index ~ dmex_index, order=1)
+
+
+```
+
+Again, for both lags (4 and 1) pvalues (0.1009 and 0.2241) are greater than 5% hence results are not statistically significant therefore mexico market index is not effected by tsx index. Not sure why this is. Maybe need data for more than 2 years?
+
+
+#### Forthly test if nasdaq index is effected by tsx index. 
+
+```{r}
+
+# Testing if nasdaq index causes tsx index to change  for order =4 (lag =4). 
+grangertest(dnas_index ~ dtsx_index, order=4)
+
+
+# Testing if nasdaq index causes tsx index to change for order =1 (lag =1). 
+grangertest(dnas_index ~ dtsx_index, order=1)
+
+
+```
+
+Again, for both lags (4 and 1) pvalues (0.7822 and  0.8048) are greater than 5% hence results are not statistically significant therefore mexico market index is not effected by tsx index. Not sure why this is. Maybe need data for more than 2 years?
+
+### Variance decomposition (table only no graphs)
+
+```{r}
+library(vars)
+
+varmat <- as.matrix(cbind(dmex_index,dtsx_index, dnas_index))
+varfit <- VAR(varmat) # `VAR()` from package `vars`
+summary(varfit)
+
+
+```
+
+### Impulse response functions (graphs only no tables) between the three stock market indices.
+```{r}
+
+```
+
+
+
+#################################
+```{r}
+
+
+
+#rm(list=ls()) #Removes all items in Environment!
+library(tseries) # for `adf.test()`
+library(dynlm) #for function `dynlm()`
+library(vars) # for function `VAR()`
+library(nlWaldTest) # for the `nlWaldtest()` function
+library(lmtest) #for `coeftest()` and `bptest()`.
+library(broom) #for `glance(`) and `tidy()`
+library(PoEdata) #for PoE4 datasets
+library(POET)
+library(car) #for `hccm()` robust standard errors
+library(sandwich)
+library(knitr) #for `kable()`
+library(forecast) 
+```
+New package: vars (Pfaff 2013).
+
+When there is no good reason to assume a one-way causal relationship between two time series variables we may think of their relationship as one of mutual interaction. The concept of “vector,” as in vector error correction refers to a number of series in such a model.
+
+13.1 VAR and VEC Models
+Equations  1  and  1  show a generic vector autoregression model of order 1, VAR(1), which can be estimated if the series are both I(0). If they are I(1), the same equations need to be estimated in first differences.
+
+yt=β10+β11yt−1+β12xt−1+νyt(1)
+xt=β20+β21yt−1+β22xt−1+νxt(2)
+If the two variables in Equations  1  and  2  and are cointegrated, their cointegration relationship should be taken into account in the model, since it is valuable information; such a model is called vector error correction. The cointegration relationship is, remember, as shown in Equation  3 , where the error term has been proven to be stationary.
+
+yt=β0+β1xt+et(3)
+13.2 Estimating a VEC Model
+The simplest method is a two-step procedure. First, estimate the cointegrating relationship given in Equation  3  and created the lagged resulting residual series  e^t−1=yt−1−b0−b1xt−1 . Second, estimate Equations  4  and  5  by OLS.
+
+Δyt=α10+α11+e^t−1+νyt(4)
+Δxt=α20+α21+e^t−1+νxt(5)
+The following example uses the dataset  gdp , which includes GDP series for Australia and USA for the period since 1970:1 to 2000:4. First we determine the order of integration of the two series.
+```{r}
+
+plot.ts(finaltsx_index)
+tsx = ts(tsx_index)
+mex = ts(mex_index)
+nas = ts(nas_index)
+
+ts.plot(tsx)
+ts.plot(nas)
+ts.plot(mex)
+
+#gdp <- ts(gdp, start=c(1970,1), end=c(2000,4), frequency=4)
+
+ts.plot(tsx,mex,nas, type="l", 
+        lty=c(1,2, 3), col=c(1,2, 3))
+legend("topleft", border=NULL, legend=c("TSX","MEX", "NASDAQ"), 
+       lty=c(1,2, 3), col=c(1,2, 3))
+
+```
+
+Australian and USA GDP series from dataset 'gdp'
+Figure 13.1: Australian and USA GDP series from dataset ‘gdp’
+```{r}
+
+```
+Figure 13.1 represents the two series in levels, revealing a common trend and, therefore, suggesting that the series are nonstationary.
+
+
+```{r}
+
+x <- rnorm(1000)  # no unit-root
+adf.test(x)
+plot.ts(x)
+pp.test(x)
+kpss.test(x, null = "T")
+
+y <- diffinv(x)   # contains a unit-root
+plot.ts(y)
+adf.test(y)
+
+?kpss.test()
+
+adf.test(drbcReturn)
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  gdp[, "usa"]
+## Dickey-Fuller = -0.9083, Lag order = 4, p-value = 0.949
+## alternative hypothesis: stationary
+adf.test(dmReturn)
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  gdp[, "aus"]
+## Dickey-Fuller = -0.6124, Lag order = 4, p-value = 0.975
+## alternative hypothesis: stationary
+adf.test(diff(gdp[,"usa"]))
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  diff(gdp[, "usa"])
+## Dickey-Fuller = -4.293, Lag order = 4, p-value = 0.01
+## alternative hypothesis: stationary
+adf.test(diff(gdp[,"aus"]))
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  diff(gdp[, "aus"])
+## Dickey-Fuller = -4.417, Lag order = 4, p-value = 0.01
+## alternative hypothesis: stationary
+
+```
+
+The stationarity tests indicate that both series are I(1), Let us now test them for cointegration, using Equations  6  and  7 .
+
+aust=β1usat+et(6)
+e^t=aust−β1usat(7)
+
+```{r}
+cint1.dyn <- dynlm(aus~usa-1, data=gdp)
+kable(tidy(cint1.dyn), digits=3, caption="The results of the cointegration equation 'cint1.dyn'")
+```
+
+Table 13.1: The results of the cointegration equation ‘cint1.dyn’
+term	estimate	std.error	statistic	p.value
+usa	0.985	0.002	594.787	0
+ehat <- resid(cint1.dyn)
+cint2.dyn <- dynlm(d(ehat)~L(ehat)-1)
+
+```{r}
+
+
+
+summary(cint2.dyn)
+## 
+## Time series regression with "ts" data:
+## Start = 1970(2), End = 2000(4)
+## 
+## Call:
+## dynlm(formula = d(ehat) ~ L(ehat) - 1)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -1.4849 -0.3370 -0.0038  0.4656  1.3507 
+## 
+## Coefficients:
+##         Estimate Std. Error t value Pr(>|t|)   
+## L(ehat)  -0.1279     0.0443   -2.89   0.0046 **
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.598 on 122 degrees of freedom
+## Multiple R-squared:  0.064,  Adjusted R-squared:  0.0564 
+## F-statistic: 8.35 on 1 and 122 DF,  p-value: 0.00457
+
+```
+
+Our test rejects the null of no cointegration, meaning that the series are cointegrated. With cointegrated series we can construct a VEC model to better understand the causal relationship between the two variables.
+
+```{r}
+
+vecaus<- dynlm(d(aus)~L(ehat), data=gdp)
+vecusa <- dynlm(d(usa)~L(ehat), data=gdp)
+tidy(vecaus)
+```
+
+term	estimate	std.error	statistic	p.value
+(Intercept)	0.491706	0.057909	8.49094	0.000000
+L(ehat)	-0.098703	0.047516	-2.07727	0.039893
+
+```{r}
+
+tidy(vecusa)
+```
+
+term	estimate	std.error	statistic	p.value
+(Intercept)	0.509884	0.046677	10.923715	0.000000
+L(ehat)	0.030250	0.038299	0.789837	0.431168
+The coefficient on the error correction term ( e^t−1 ) is significant for Australia, suggesting that changes in the US economy do affect Australian economy; the error correction coefficient in the US equation is not statistically significant, suggesting that changes in Australia do not influence American economy. To interpret the sign of the error correction coefficient, one should remember that  e^t−1  measures the deviation of Australian economy from its cointegrating level of  0.985  of the US economy (see Equations  6 and  7  and the value of  β1  in Table 13.1).
+
+13.3 Estimating a VAR Model
+The VAR model can be used when the variables under study are I(1) but not cointegrated. The model is the one in Equations  ??? , but in differences, as specified in Equations  8  and  9 .
+
+Δyt=β11Δyt−1+β12Δxt−1+νΔyt(8)
+Δxt=β21Δyt−1+β22Δxt−1+νΔxt(9)
+Let us look at the income-consumption relationship based on the  fred  detaset, where consumption and income are already in logs, and the period is 1960:1 to 2009:4. Figure 13.2 shows that the two series both have a trend.
+
+data("fred", package="PoEdata")
+fred <- ts(fred, start=c(1960,1),end=c(2009,4),frequency=4)
+ts.plot(fred[,"c"],fred[,"y"], type="l", 
+        lty=c(1,2), col=c(1,2))
+legend("topleft", border=NULL, legend=c("c","y"), 
+       lty=c(1,2), col=c(1,2))
+ Logs of income (y) and consumption (c), dataset 'fred'
+Figure 13.2: Logs of income (y) and consumption (c), dataset ‘fred’
+
+Are the two series cointegrated?
+
+Acf(fred[,"c"])
+Acf(fred[,"y"])
+adf.test(fred[,"c"])
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  fred[, "c"]
+## Dickey-Fuller = -2.62, Lag order = 5, p-value = 0.316
+## alternative hypothesis: stationary
+adf.test(fred[,"y"])
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  fred[, "y"]
+## Dickey-Fuller = -2.291, Lag order = 5, p-value = 0.454
+## alternative hypothesis: stationary
+adf.test(diff(fred[,"c"]))
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  diff(fred[, "c"])
+## Dickey-Fuller = -4.713, Lag order = 5, p-value = 0.01
+## alternative hypothesis: stationary
+adf.test(diff(fred[,"y"]))
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  diff(fred[, "y"])
+## Dickey-Fuller = -5.775, Lag order = 5, p-value = 0.01
+## alternative hypothesis: stationary
+cointcy <- dynlm(c~y, data=fred)
+ehat <- resid(cointcy)
+adf.test(ehat)
+## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  ehat
+## Dickey-Fuller = -2.562, Lag order = 5, p-value = 0.341
+## alternative hypothesis: stationary
+ Correlograms for the series c and y, dataset fredCorrelograms for the series c and y, dataset fred
+Figure 13.3: Correlograms for the series c and y, dataset fred
+
+Figure 13.3 shows a long serial correlation sequence; therefore, I will let  R  calculate the lag order in the ADF test. As the results of the above adf and cointegration tests show, the series are both I(1) but they fail the cointegration test (the series are not cointegrated.) (Plese rememebr that the adf.test function uses a constant and trend in the test equation; therefore, the critical values are not the same as in the textbook. However, the results of the tests should be the same most of the time.)
+
+library(vars)
+Dc <- diff(fred[,"c"])
+Dy <- diff(fred[,"y"])
+varmat <- as.matrix(cbind(Dc,Dy))
+varfit <- VAR(varmat) # `VAR()` from package `vars`
+summary(varfit)
+
+
+
+
+END
